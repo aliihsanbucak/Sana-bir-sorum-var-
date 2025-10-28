@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sana Bir Sorum Var...</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chosen Palette: Dramatic Black & Romantic Red/Pink -->
+    <!-- Application Structure Plan: Tek ekranlı, merkezi bir kart tasarımı. Arka plan siyahtır. Başarı mesajı (id=success-message) tam ekran fixed overlay olarak konumlandırılmıştır. BU SAYFADA ARTIK KALBİN HEMEN ÜSTÜNDE ÖZEL BİR ROMANTİK METİN VAR. 'Hayır' butonu eğlenceli etkileşimine devam eder. Yeni 'Romantik Mesaj Oluştur' butonu (Gemini API) kişiselleştirme sağlar. -->
+    <!-- Interactive Element Choices: Goal: Hata giderilmiş, animasyonlu ve özel metinli teklif sunmak. Method: HTML/CSS/JS + Gemini API. Interaction: 'Evet' butonu, tam ekran overlay olan 'success-message'ı görünür yapar. 'Hayır' butonu, 'Evet'i büyütür. 'Oluştur' butonu Gemini'den mesaj çeker. Justification: Yapısal hata giderildi ve kullanıcının istediği özel romantik metin başarı ekranına eklendi. Library: Vanilla JS, Gemini API. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Nunito:wght@400;700&display=swap');
+        body {
+            font-family: 'Nunito', sans-serif;
+            /* Scrollu gizle, tüm ekranı kaplamak için */
+            overflow: hidden; 
+            background-color: #000;
+        }
+        .fancy-font {
+            font-family: 'Pacifico', cursive;
+        }
+        /* Kalp Titreşimi Animasyonu */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .heart-pulse {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="bg-black min-h-screen flex items-center justify-center p-4 text-white">
+
+    <!-- Başarı Mesajı (Gizli - Tam Ekran Fixed Overlay) -->
+    <div id="success-message" class="hidden fixed inset-0 w-full h-full bg-black flex flex-col items-center justify-center p-8 z-50">
+        
+        <!-- Kalbin Üstündeki Özel Mesaj -->
+        <p class="text-2xl sm:text-4xl font-semibold text-red-500 fancy-font mb-4">
+            Seni bir türlü çıkaramadım aklımdan...
+        </p>
+
+        <div class="heart-pulse mb-8">
+            <!-- Kalp Emoji'si -->
+            <span class="text-[12rem] sm:text-[18rem] block">❤️</span>
+        </div>
+        
+        <h2 class="text-5xl sm:text-7xl font-bold text-pink-400 fancy-font animate-bounce">
+            Seni Seviyorum!
+        </h2>
+        
+        <p class="text-xl sm:text-2xl text-gray-300 mt-6">
+            Beni dünyanın en mutlu insanı yaptın! Şimdi kutlama zamanı, çantaya bakar mısın?
+        </p>
+    </div>
+
+    <!-- Ana İçerik Kartı -->
+    <main class="w-full max-w-lg z-10">
+        <div id="card" class="bg-gray-900 shadow-2xl rounded-2xl p-8 text-center transition-all duration-500 transform border border-pink-700 relative">
+            
+            <!-- Teklif İçeriği (Görünür) -->
+            <div id="proposal-content">
+                <span class="text-7xl block mb-4 animate-ping">✨</span>
+                <h1 class="text-3xl sm:text-4xl font-bold text-pink-400 fancy-font">Sana çok önemli bir sorum var...</h1>
+                
+                <p class="text-lg text-gray-300 mt-4">
+                    Her anımda seni düşünüyorum ve hayatımı seninle geçirmek istiyorum. Neşene bayılıyorum. Ela gözlerine ve yeni gördüğüm gamzelerine bitiyorum. Aynı duyguları beslediğimize inanamıyorum ve ebediyen, ahiretliğim olmanı istiyorum.
+                </p>
+                
+                <!-- Gemini Destekli Mesaj Alanı -->
+                <div class="mt-4 mb-4">
+                    <button id="generate-msg-btn" class="text-sm bg-pink-700 text-white py-2 px-4 rounded-full transition-colors duration-200 hover:bg-pink-600">
+                        ✨ Romantik Mesaj Oluştur
+                    </button>
+                    <div id="loading-spinner" class="hidden mt-2 text-pink-400 text-sm">Mesaj yazılıyor...</div>
+                    <div id="generated-message-area" class="mt-3 p-3 bg-pink-800/50 text-pink-100 rounded-lg text-sm italic hidden shadow-inner text-center">
+                        <!-- Message will go here -->
+                    </div>
+                </div>
+                <!-- /Gemini Destekli Mesaj Alanı -->
+
+                <p class="text-2xl sm:text-3xl font-bold text-red-500 mt-8 mb-8">
+                    Benimle çıkar mısın?
+                </p>
+
+                <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                    <button id="yes-btn" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-4 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 text-xl whitespace-nowrap">
+                        EVET! 😍
+                    </button>
+                    <button id="no-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-5 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 text-md whitespace-nowrap">
+                        Hayır 😢
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const successMessage = document.getElementById('success-message');
+        const card = document.getElementById('card');
+        const yesBtn = document.getElementById('yes-btn');
+        const noBtn = document.getElementById('no-btn');
+        const generateMsgBtn = document.getElementById('generate-msg-btn');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const generatedMessageArea = document.getElementById('generated-message-area');
+
+        let yesButtonScale = 1;
+        let noClickCount = 0;
+        
+        const noMessages = [
+            "Emin misin Başkan? Bir daha dene. 🥺",
+            "Bu butonun çalışması yasak canım!",
+            "Ama neden? Kalbim kırılır 💔",
+            "Yanlış butona basıyorsun 🌙büke!",
+            "Lütfeeeen? 🙏",
+            "Sonsuza kadar basabilirsin ama cevap değişmez 😉",
+            "Çıldırtma beni Evet'e bas artık.",
+            "Bak bu butona bir daha basarsan buradan evlendirme dairesine götürürüm seni."
+        ];
+
+        // --- GEMINI API ENTEGRASYONU ---
+        const apiKey = ""; 
+        const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        async function fetchWithRetry(url, options, maxRetries = 3) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        if (response.status === 429 && i < maxRetries - 1) { 
+                            const delay = Math.pow(2, i) * 1000;
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            continue;
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response;
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                    const delay = Math.pow(2, i) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        async function generateMessage() {
+            loadingSpinner.classList.remove('hidden');
+            generatedMessageArea.classList.add('hidden');
+            generateMsgBtn.disabled = true;
+
+            const systemPrompt = "Sen, derin duygularla yazan bir romantik şairsin. Amacın, kalpleri eritecek, kısa (en fazla 3 cümle) ve içten bir çıkma teklifi mesajı oluşturmak. Mesajı direkt olarak, başka bir açıklama yapmadan döndür. Türkçe konuş. Mesaj samimi olmalı.";
+            const userQuery = "Çıkma teklifime eşlik edecek çok romantik, kısa ve samimi bir mesaj oluştur.";
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            try {
+                const response = await fetchWithRetry(geminiApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Romantik bir mesaj oluşturulamadı. Kalbinden geçenleri söyle!";
+                
+                generatedMessageArea.textContent = text;
+                generatedMessageArea.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Gemini API hatası:", error);
+                generatedMessageArea.textContent = "O Ela gözlerinde kaybolmak ve Gamzelerinde bir ömür yaşamak istiyorum.";
+                generatedMessageArea.classList.remove('hidden');
+            } finally {
+                loadingSpinner.classList.add('hidden');
+                generateMsgBtn.disabled = false;
+            }
+        }
+
+        generateMsgBtn.addEventListener('click', generateMessage);
+
+        // --- TEKLİF BUTON LOGİĞİ ---
+
+        yesBtn.addEventListener('click', () => {
+            // Sadece başarı mesajı overlay'ini görünür yap.
+            successMessage.classList.remove('hidden');
+        });
+
+        noBtn.addEventListener('click', () => {
+            noClickCount++;
+            yesButtonScale += 0.2; 
+            
+            yesBtn.style.transform = `scale(${yesButtonScale})`;
+            
+            const currentFontSize = parseFloat(window.getComputedStyle(yesBtn, null).getPropertyValue('font-size'));
+            yesBtn.style.fontSize = `${currentFontSize + 1}px`;
+
+            const currentPaddingY = parseFloat(window.getComputedStyle(yesBtn, null).getPropertyValue('padding-top'));
+            const currentPaddingX = parseFloat(window.getComputedStyle(yesBtn, null).getPropertyValue('padding-left'));
+            yesBtn.style.padding = `${currentPaddingY + 2}px ${currentPaddingX + 4}px`;
+
+            noBtn.textContent = noMessages[noClickCount % noMessages.length];
+            
+            if (noClickCount > 7) {
+                noBtn.classList.add('opacity-0');
+                noBtn.classList.add('pointer-events-none');
+            }
+        });
+
+        noBtn.addEventListener('mouseover', () => {
+            if (noClickCount > 0 && noClickCount < 7) {
+                const cardRect = card.getBoundingClientRect();
+                const btnRect = noBtn.getBoundingClientRect();
+                
+                // Kartın relative pozisyonu içinde rastgele hareket et
+                const newTop = Math.random() * (cardRect.height - btnRect.height - 20) + 10;
+                const newLeft = Math.random() * (cardRect.width - btnRect.width - 20) + 10;
+
+                if (noBtn.style.position !== 'absolute') {
+                    noBtn.style.position = 'absolute';
+                    // İlk pozisyonu card içinde resetle
+                    noBtn.style.top = 'auto'; 
+                    noBtn.style.left = 'auto';
+                }
+                
+                noBtn.style.top = `${newTop}px`;
+                noBtn.style.left = `${newLeft}px`;
+            }
+        });
+    </script>
+</body>
+</html>
